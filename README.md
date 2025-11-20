@@ -12,6 +12,11 @@ Overview
 - Produce `analysis_report` with `findings`, `recommendations`, `patterns_detected`, and `strengths`
 
 Quick start
+# Screenshot
+![MBSE Assistant screenshot](images/image.png)
+
+---
+
 -----------
 
 Prerequisites: Python 3.12+, Node.js (for UI)
