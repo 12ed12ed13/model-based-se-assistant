@@ -1,3 +1,219 @@
+Model-Based Software Engineering Assistant (MBSE Assistant)
+=========================================================
+
+A compact multi-agent system that converts UML/PlantUML diagrams into refactored code, tests, and analysis reports. The workflow is designed for clarity and easy extension.
+
+Overview
+--------
+- Parse UML (PlantUML) into an intermediate representation (IR)
+- Analyze for SOLID/design-pattern issues (deterministic detectors + LLM/RAG)
+- Generate refactored Python code (services, repositories, interfaces)
+- Generate pytest tests and run them in a sandbox with self-correction for syntax/import errors
+- Produce `analysis_report` with `findings`, `recommendations`, `patterns_detected`, and `strengths`
+
+Quick start
+-----------
+
+Prerequisites: Python 3.12+, Node.js (for UI)
+
+Install:
+
+```bash
+git clone https://github.com/yourusername/model-based-se-assistant.git
+cd model-based-se-assistant
+python -m venv ag
+source ag/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+Run backend + UI (development):
+
+```bash
+# Backend
+source ag/bin/activate
+uvicorn backend.api:app --reload --port 8000
+
+# Frontend (dev)
+cd ui
+npm install
+npm run dev
+# Browse http://localhost:5173
+```
+
+Build UI for production: `cd ui && npm run build` and serve `ui/dist` from a static host or backend.
+
+Key features
+------------
+- Deterministic detectors: god classes, coupling, long parameter lists
+- LLM-enhanced RAG: context-aware recommendations
+- Patterns detected: Repository, Service, Controller/Router, Strategy, Factory, Facade, Adapter, Observer
+- Strengths: highlights good practices (naming, DI, separation of concerns)
+- Self-correction loop for syntax/import errors during test runs
+
+Configuration
+-------------
+Edit `backend/config.py` or `.env`:
+
+```text
+PROJECTS_DIR=./projects
+LLM_PROVIDER=gemini
+LLM_FALLBACK_MODEL=gpt-4o-mini
+SANDBOX_TIMEOUT=60
+```
+
+Testing
+-------
+Unit tests: `pytest -m "not integration"`
+Integration tests (LLM keys required): `pytest -m integration`
+
+Development notes
+-----------------
+- Avoid `uvicorn --reload` watching the repository while generated artifacts are written; set `PROJECTS_DIR` outside the repo to avoid unintended reloads.
+- The UI can render `analysis_report.patterns_detected` and `analysis_report.strengths` for quick insight into what is already good.
+
+Contributing
+------------
+Fork, add tests, open a PR, describe the change and scope (analysis, codegen, tests, UI).
+
+License
+-------
+MIT
+Model-Based Software Engineering Assistant
+
+This repository provides a multi-agent system that turns UML/PlantUML diagrams into refactored code, tests, and architectural guidance.
+
+Overview
+--------
+
+This project uses a LangGraph workflow with multiple agents to:
+
+- parse UML (PlantUML) into an intermediate representation (IR)
+- analyze the model for SOLID and design-pattern-based issues
+- generate refactored code (Python) with interfaces and dependency injection
+- generate tests (pytest) and run them in a sandbox
+- attempt to self-correct syntax/import errors
+- produce a critique report that includes issues, recommendations, and detected patterns
+
+Key components
+--------------
+
+- backend: FastAPI server and multi-agent orchestration
+- codegen: code generation and refactoring agent
+- testgen: automated test generation agent
+- parser: PlantUML to JSON IR converter
+- analysis: deterministic detectors + LLM-RAG for context-aware suggestions
+
+Quick start
+-----------
+
+Prerequisites
+- Python 3.12+
+- Node.js for the UI
+- Optional: Google Gemini/OpenAI keys for LLMs
+
+Install
+
+```bash
+git clone https://github.com/yourusername/model-based-se-assistant.git
+cd model-based-se-assistant
+python -m venv ag
+source ag/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env to add LLM keys if you have them
+```
+
+Run backend + UI
+-----------------
+
+```bash
+# Terminal 1 - Backend
+source ag/bin/activate
+uvicorn backend.api:app --reload --port 8000
+
+# Terminal 2 - Frontend (dev)
+cd ui
+npm install
+npm run dev
+
+# Open http://localhost:5173
+```
+
+Build & serve UI in production
+-------------------------------
+
+```bash
+cd ui
+npm run build
+# optionally copy ui/dist/ to backend/static/ and configure the backend to serve static files
+```
+
+Features
+--------
+
+- Analysis:
+  - SOLID violation detection (SRP, OCP, DIP, ISP, LSP)
+  - Coupling/cohesion measures
+  - Deterministic detectors + LLM-enhanced recommendations
+  - `patterns_detected`: heuristics and LLM output (Repository, Service, Router/Controller, Strategy, Factory, Facade, Adapter, Observer)
+  - `strengths`: things done well in the model (clear naming, repository usage, DI)
+
+- Code generation:
+  - Splits god classes, extracts interfaces
+  - Produces multi-file Python project skeleton with services and repositories
+
+- Test generation and execution:
+  - Generates pytest suites and attempts to run them in a sandbox with timeout
+  - If tests fail due to syntax/import errors, a self-correction loop tries to fix errors (up to a retry limit)
+
+Configuration
+-------------
+
+Edit `backend/config.py` or `.env`:
+
+```python
+PROJECTS_DIR=./projects
+LLM_PROVIDER=gemini
+LLM_FALLBACK_MODEL=gpt-4o-mini
+SANDBOX_TIMEOUT=60
+```
+
+Development notes
+-----------------
+
+- Avoid storing generated artifacts in the repo while the dev server runs (set `PROJECTS_DIR` to an external folder to avoid auto-reloads).
+- The `analysis_report` includes `patterns_detected` and `strengths` which you can render in the UI to show "what's good" along with problems.
+
+Tests
+-----
+
+```bash
+# Backend unit tests
+pytest -m "not integration"
+
+# Integration tests (LLM keys needed)
+pytest -m integration
+```
+
+Roadmap / TODOs
+---------------
+
+- Frontend: full dashboard, interactive UML editor, WebSocket progress
+- RAG: ingest PDFs and docs, multi-modal RAG
+- Multi-language codegen: TypeScript, Java
+- DevOps: docker-compose, helm charts
+- Security: user auth, sandbox hardening
+
+Contributing
+------------
+
+Please fork, add tests, and open a PR.
+
+License
+-------
+
+MIT
 # Model-Based Software Engineering Assistant 🤖
 
 A production-ready AI-powered system that transforms UML/PlantUML diagrams into fully refactored, tested, and documented code using multi-agent orchestration with LangGraph.
@@ -42,6 +258,10 @@ This system implements a complete **Model-Based Software Engineering (MBSE)** wo
 - **Design Patterns**: Identifies missing abstractions and suggests patterns
 - **Code Metrics**: LCOM (cohesion), fan-in/fan-out (coupling), cyclomatic complexity
 - **RAG-Enhanced**: Retrieves relevant design knowledge from vector database (FAISS/Chroma)
+  
+Added info: patterns_detected and strengths
+- **Pattern Detection**: The analysis identifies existing design patterns implemented in the model (Repository, Service, Router/Controller, Strategy, Factory, Facade, Adapter, Observer) and surfaces them in the analysis output as `patterns_detected`.
+- **Strengths / Good Practices**: The analysis also highlights what is already good in your model (e.g., clear service/repository separation, use of stereotypes that indicate framework usage, moderate coupling). These are included as `strengths` in the analysis report.
 
 ### 🏗️ **Intelligent Code Generation**
 - **Refactoring-Aware**: Automatically splits god classes and extracts interfaces
@@ -153,6 +373,64 @@ Alternatively set `PROJECTS_DIR` in `.env` to a location outside the repository 
 
 ```
 PROJECTS_DIR=/Users/yourname/mbse-projects
+
+### UI (Frontend) Startup
+
+Use the React + Vite UI in `ui/` during development. Steps:
+
+1. Install Node dependencies
+
+```bash
+cd ui
+npm install
+```
+
+2. Start the UI dev server (default port: 5173)
+
+```bash
+npm run dev
+```
+
+3. Start the backend in a separate terminal (default port: 8000):
+
+```bash
+source ag/bin/activate
+uvicorn backend.api:app --reload --port 8000
+```
+
+4. Open: http://localhost:5173
+
+Tip: The UI dev server is configured to proxy API requests to the backend. See `ui/vite.config.ts` for configuration.
+
+### Build & Serve the UI (Production)
+
+To build the UI for production and serve it from the backend:
+
+```bash
+cd ui
+npm run build
+
+# Optionally copy ui/dist content into the backend static folder
+# e.g. cp -r ui/dist backend/static
+
+# Serve static files via FastAPI or a static file host (S3, Netlify, Vercel)
+```
+
+### Run backend + UI locally (helper)
+
+Open two terminals and run the backend in one and the UI in the other:
+
+```bash
+# Terminal 1: backend
+source ag/bin/activate
+uvicorn backend.api:app --reload --port 8000
+
+# Terminal 2: frontend
+cd ui
+npm run dev
+```
+
+To run both with Docker or docker-compose, add a `docker-compose.yml` that builds both services and sets `VITE_API_BASE_URL` to the backend host.
 ```
 
 ### Output Structure
@@ -313,3 +591,23 @@ For questions or support, please open an issue on GitHub.
 ---
 
 **⭐ Star this repo if you find it useful!**
+
+## ⬆️ Git operations (push your changes)
+
+After updating docs or code, run these commands to push your changes to GitHub from your active branch:
+
+```bash
+git add -A
+git commit -m "docs: add UI startup steps and push guide"
+git push origin main
+```
+
+If you use feature branches and PRs:
+
+```bash
+git checkout -b feature/ui-readme
+git add -A
+git commit -m "feat(ui): add README UI instructions"
+git push -u origin feature/ui-readme
+# Open a PR on GitHub
+```

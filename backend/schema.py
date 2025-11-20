@@ -128,6 +128,10 @@ class AnalysisReport(BaseModel):
         default_factory=dict,
         description="Computed metrics (e.g., avg_methods_per_class, max_methods_per_class)"
     )
+    strengths: List[str] = Field(
+        default_factory=list,
+        description="Detected strengths or good practices in the model (e.g., repositories, DI, clear separation)"
+    )
     summary: str = Field(
         default="",
         description="High-level summary of the analysis"

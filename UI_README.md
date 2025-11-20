@@ -29,9 +29,11 @@ A full-stack application for managing UML models, code generation, analysis, and
 
 ### Analysis & Recommendations
 - Automated design pattern detection
+  - `patterns_detected`: analysis will list patterns found in the UML such as Repository, Service, Router/Controller, Strategy, Factory, Facade, Adapter, and Observer.
 - SOLID principles validation
 - RAG-enhanced analysis with knowledge base
 - Prioritized recommendations
+  - `strengths`: analysis includes a list of positive aspects that are already present (clear naming, DI/repository pattern, low coupling), so the UI can show "what's good" along with issues.
 - Track recommendation status (open/in-progress/resolved/dismissed)
 
 ### Code & Test Generation

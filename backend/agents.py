@@ -1056,6 +1056,96 @@ class AnalysisAgent:
 
         return f"Design guidance for {base_query}. Focus: {focus_section}. {tag_section} {metric_section}"
 
+    def _detect_implemented_patterns(self, model_ir: Dict[str, Any]) -> List[str]:
+        """
+        Heuristically detect known design patterns present in the model.
+
+        Returns a list of pattern names detected.
+        """
+        patterns = set()
+        classes = model_ir.get("classes", [])
+
+        # Name-based heuristics
+        for cls in classes:
+            name = cls.get("name", "")
+            stereo = (cls.get("stereotype") or "").lower() if cls.get("stereotype") else ""
+            methods = [m.get("name", "") for m in cls.get("methods", [])]
+
+            if name.endswith("Repository") or "repository" in stereo:
+                patterns.add("Repository")
+            if name.endswith("Service") or name.endswith("Manager") or "service" in stereo:
+                patterns.add("Service")
+            if name.endswith("Router") or name.endswith("Controller") or "router" in stereo:
+                patterns.add("Controller/Router")
+            if name.endswith("Factory") or any(m.lower().startswith("create") for m in methods):
+                patterns.add("Factory")
+            if any(m.lower().startswith("to_") or m.lower().startswith("from_") for m in methods):
+                patterns.add("Adapter")
+
+        # Strategy pattern: multiple classes implement same method name
+        method_to_classes = {}
+        for cls in classes:
+            for m in cls.get("methods", []):
+                mname = m.get("name", "")
+                if mname:
+                    method_to_classes.setdefault(mname, []).append(cls.get("name"))
+        for method, clist in method_to_classes.items():
+            if len(clist) >= 3:
+                patterns.add("Strategy")
+
+        # Observer: look for multiple classes with 'subscribe'/'notify' or events
+        event_methods = ["subscribe", "unsubscribe", "notify", "publish", "subscribe_to"]
+        for cls in classes:
+            mnames = [m.get("name", "").lower() for m in cls.get("methods", [])]
+            if any(em in mnames for em in event_methods):
+                patterns.add("Observer")
+
+        # Facade: a class that depends on many classes but exposes simpler API
+        class_names = {c.get("name") for c in classes}
+        for cls in classes:
+            outgoing = 0
+            for rel in model_ir.get("relationships", []):
+                if rel.get("from") == cls.get("name"):
+                    outgoing += 1
+            if outgoing >= 5 and len(cls.get("methods", [])) < 10:
+                patterns.add("Facade")
+
+        return sorted(patterns)
+
+    def _detect_strengths(self, model_ir: Dict[str, Any], metrics: Dict[str, Any]) -> List[str]:
+        """
+        Detect strengths — things the model is already doing well.
+        Returns textual descriptions of strengths.
+        """
+        strengths = []
+        classes = model_ir.get("classes", [])
+
+        # Detect use of Repositories and Services
+        repo_count = sum(1 for c in classes if c.get("name", "").endswith("Repository") or (c.get("stereotype") or "").lower().find("repository") != -1)
+        service_count = sum(1 for c in classes if c.get("name", "").endswith("Service") or (c.get("stereotype") or "").lower().find("service") != -1)
+
+        if repo_count:
+            strengths.append(f"Repository pattern used ({repo_count} repository classes). This helps separate data access from business logic.")
+        if service_count:
+            strengths.append(f"Service layer present ({service_count} service classes) which helps organize business rules.")
+
+        # Low coupling
+        fan_out_max = metrics.get("avg_methods_per_class", 0)
+        if metrics.get("relationship_density", 0) < 1.0:
+            strengths.append("Overall relationship density is moderate, indicating reasonable coupling between classes.")
+
+        # Good naming / clear responsibilities
+        well_named = sum(1 for c in classes if any(s in (c.get("name", "")) for s in ["Service", "Repository", "Router", "Controller", "Factory"]))
+        if well_named > 2:
+            strengths.append("Multiple classes follow conventional naming (Service/Repository/Router) — this improves readability and maintainability.")
+
+        # Stereotype-aware positives
+        stereotypes = [c.get("stereotype") for c in classes if c.get("stereotype")]
+        if stereotypes:
+            strengths.append(f"Stereotypes defined for classes: {', '.join([s for s in stereotypes if s])}. These help the analyzer correctly interpret framework patterns.")
+
+        return strengths
+
     def analyze_model(
         self,
         model_ir: Dict[str, Any],
@@ -1560,10 +1650,12 @@ Retrieved Design Knowledge:
             final_report = {
                 "findings": all_findings,
                 "recommendations": recommendations,
-                "patterns_detected": llm_result.get("patterns_detected", []),
+                "patterns_detected": llm_result.get("patterns_detected", []) or self._detect_implemented_patterns(model_ir),
                 "quality_score": llm_result.get("quality_score", 0.5),
                 "quality_metrics": metrics,
                 "summary": llm_result.get("summary", f"Analyzed {len(model_ir.get('classes', []))} classes, found {len(all_findings)} issues"),
+                # Prefer LLM-supplied strengths (if provided) but merge with deterministic strengths
+                "strengths": (llm_result.get("strengths") or []) + [s for s in self._detect_strengths(model_ir, metrics) if s not in (llm_result.get("strengths") or [])],
                 "trend": {},
             }
 
