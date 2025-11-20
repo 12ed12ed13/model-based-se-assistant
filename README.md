@@ -12,6 +12,11 @@ Overview
 - Produce `analysis_report` with `findings`, `recommendations`, `patterns_detected`, and `strengths`
 
 Quick start
+# Screenshot
+![MBSE Assistant screenshot](images/image.png)
+
+---
+
 -----------
 
 Prerequisites: Python 3.12+, Node.js (for UI)
@@ -214,6 +219,7 @@ License
 -------
 
 MIT
+<<<<<<< HEAD
 # Model-Based Software Engineering Assistant 🤖
 
 A production-ready AI-powered system that transforms UML/PlantUML diagrams into fully refactored, tested, and documented code using multi-agent orchestration with LangGraph.
@@ -611,3 +617,5 @@ git commit -m "feat(ui): add README UI instructions"
 git push -u origin feature/ui-readme
 # Open a PR on GitHub
 ```
+=======
+>>>>>>> 7f200529971c88697f1b23189eea884ddfb37c27
