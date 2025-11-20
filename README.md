@@ -16,6 +16,7 @@ This system implements a complete **Model-Based Software Engineering (MBSE)** wo
 5. **Executes** tests in sandboxed environments
 6. **Critiques** and suggests improvements
 7. **Saves** all artifacts persistently with full project memory
+8. **Visualizes** the entire process through a React-based dashboard (in progress)
 
 ## 🏗️ Architecture
 
@@ -132,6 +133,28 @@ print(f"Found {len(result['analysis_report']['findings'])} issues")
 print(f"Created {result['generated_tests']['total_tests']} tests")
 ```
 
+### Running the backend safely during workflow execution
+
+By default, `uvicorn --reload` watches the entire repository which includes `projects/` and will restart the server any time artifacts are written into that directory (e.g., generated source/tests). If you're running long-running workflows that write into `projects/`, use these options:
+
+- Development (safe reload that only watches backend code):
+
+```bash
+./scripts/run-dev-server.sh
+```
+
+- Production / Persistent server (no reload):
+
+```bash
+./scripts/run-prod-server.sh
+```
+
+Alternatively set `PROJECTS_DIR` in `.env` to a location outside the repository (e.g., `~/mbse-projects`) so artifact writes won't trigger reloads:
+
+```
+PROJECTS_DIR=/Users/yourname/mbse-projects
+```
+
 ### Output Structure
 
 ```
@@ -233,6 +256,36 @@ class OrderManager:
 - `repositories/` - Database abstractions
 - `services/` - OrderService, EmailService, LogService
 - `tests/` - 12+ comprehensive tests
+
+## 🗺️ Roadmap
+
+### 🚀 Upcoming Features (TODOs)
+
+- [ ] **Frontend Integration**
+  - [ ] Complete React-based dashboard for visualizing workflows
+  - [ ] Interactive UML editor integration
+  - [ ] Real-time progress tracking via WebSockets
+  - [ ] Artifact browser and code viewer
+
+- [ ] **Enhanced RAG & Knowledge Base**
+  - [ ] Support for custom knowledge base ingestion (PDFs, Docs)
+  - [ ] Multi-modal RAG (diagram image analysis)
+  - [ ] GraphRAG implementation for deeper dependency understanding
+
+- [ ] **Language Support**
+  - [ ] Add TypeScript/Node.js code generation support
+  - [ ] Add Java/Spring Boot code generation support
+  - [ ] Language-agnostic IR (Intermediate Representation) improvements
+
+- [ ] **DevOps & Deployment**
+  - [ ] Docker Compose setup for full stack (Frontend + Backend + Vector DB)
+  - [ ] Kubernetes Helm charts
+  - [ ] CI/CD pipeline templates (GitHub Actions)
+
+- [ ] **Security & Auth**
+  - [ ] User authentication and project isolation
+  - [ ] API key management and usage quotas
+  - [ ] Secure sandbox environment hardening (gVisor/Firecracker)
 
 ## 🤝 Contributing
 

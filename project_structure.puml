@@ -1,0 +1,83 @@
+@startuml
+package "Backend" {
+  [api.py] as API
+  [storage.py] as Storage
+  [schema.py] as Schema
+  [config.py] as Config
+  [graph.py] as Graph
+  [agents.py] as Agents
+  [llms.py] as LLMs
+  [tools.py] as Tools
+  [knowledge_base.py] as KB
+  [memory.py] as Memory
+  
+  package "Exporters" {
+    [plantuml.py] as PlantUMLExporter
+  }
+  
+  package "Utils" {
+    [diff.py] as DiffUtil
+  }
+}
+
+package "UI" {
+  [App.tsx] as App
+  [main.tsx] as Main
+  
+  package "Pages" {
+    [ProjectsPage.tsx] as ProjectsPage
+    [ProjectDetailPage.tsx] as ProjectDetailPage
+  }
+  
+  package "Components" {
+    [ProjectList.tsx] as ProjectList
+    [CreateProjectModal.tsx] as CreateProjectModal
+    [VersionTimeline.tsx] as VersionTimeline
+    [DiagramView.tsx] as DiagramView
+    [CodeViewer.tsx] as CodeViewer
+    [DiffView.tsx] as DiffView
+    [RecommendationsTable.tsx] as RecommendationsTable
+    [CreateVersionModal.tsx] as CreateVersionModal
+    [VersionDetails.tsx] as VersionDetails
+  }
+  
+  package "API Client" {
+    [client.ts] as APIClient
+  }
+}
+
+' Backend Relationships
+API --> Storage : uses
+API --> Graph : invokes
+API --> Config : uses
+API --> DiffUtil : uses
+Storage --> Config : uses
+Graph --> Agents : orchestrates
+Graph --> Schema : uses
+Agents --> LLMs : uses
+Agents --> Tools : uses
+Agents --> KB : uses
+Agents --> Memory : uses
+Agents --> PlantUMLExporter : uses
+
+' UI Relationships
+Main --> App : renders
+App --> ProjectsPage : routes
+App --> ProjectDetailPage : routes
+
+ProjectsPage --> ProjectList : renders
+ProjectsPage --> CreateProjectModal : renders
+ProjectsPage --> APIClient : calls
+
+ProjectDetailPage --> VersionTimeline : renders
+ProjectDetailPage --> DiagramView : renders
+ProjectDetailPage --> CodeViewer : renders
+ProjectDetailPage --> DiffView : renders
+ProjectDetailPage --> RecommendationsTable : renders
+ProjectDetailPage --> CreateVersionModal : renders
+ProjectDetailPage --> VersionDetails : renders
+ProjectDetailPage --> APIClient : calls
+
+ProjectList --> APIClient : calls (delete)
+
+@enduml

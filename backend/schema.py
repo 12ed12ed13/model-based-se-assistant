@@ -17,7 +17,8 @@ class ClassIR(BaseModel):
     name: str
     attributes: List[Attribute] = Field(default_factory=list)
     methods: List[Method] = Field(default_factory=list)
-    description: str = ""
+    description: Optional[str] = Field(default="", description="Optional description of the class")
+    stereotype: Optional[str] = Field(default=None, description="PlantUML stereotype like 'REST API Router', 'Repository Pattern', etc.")
 
 
 class Relationship(BaseModel):
@@ -30,7 +31,23 @@ class Relationship(BaseModel):
 class ModelIR(BaseModel):
     classes: List[ClassIR] = Field(default_factory=list)
     relationships: List[Relationship] = Field(default_factory=list)
-    notes: List[str] = Field(default_factory=list)
+    notes: List[Any] = Field(default_factory=list, description="Notes can be strings or dicts with text/classifier")
+    
+    @model_validator(mode='after')
+    def normalize_notes(self) -> 'ModelIR':
+        """Normalize notes to strings if they come as dictionaries."""
+        normalized_notes = []
+        for note in self.notes:
+            if isinstance(note, dict):
+                # Extract text from dict format
+                text = note.get('text', '')
+                classifier = note.get('classifier', '')
+                if text:
+                    normalized_notes.append(f"{classifier}: {text}" if classifier else text)
+            elif isinstance(note, str):
+                normalized_notes.append(note)
+        self.notes = normalized_notes
+        return self
 
 
 # ============================================================================
@@ -114,6 +131,10 @@ class AnalysisReport(BaseModel):
     summary: str = Field(
         default="",
         description="High-level summary of the analysis"
+    )
+    trend: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Diff summary compared to the previous version"
     )
     
     @model_validator(mode='after')

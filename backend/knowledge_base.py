@@ -393,7 +393,9 @@ def get_knowledge_base() -> KnowledgeBase:
     """Get or create the global knowledge base instance."""
     global _kb_instance
     if _kb_instance is None:
-        _kb_instance = KnowledgeBase(use_faiss=True)
+        # Use Chroma by default (more stable on ARM64), allow override via env var
+        use_faiss = os.environ.get("USE_FAISS", "false").lower() == "true"
+        _kb_instance = KnowledgeBase(use_faiss=use_faiss)
         _kb_instance.setup()
     return _kb_instance
 

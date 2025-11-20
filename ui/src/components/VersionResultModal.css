@@ -1,0 +1,184 @@
+.comparison-modal {
+  width: min(960px, 95vw);
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.comparison-body {
+  overflow-y: auto;
+  padding: 1.5rem;
+  gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-subtitle {
+  margin-top: 0.25rem;
+  color: var(--muted-text, #6b7280);
+  font-size: 0.95rem;
+}
+
+.status-banner {
+  background: #f5f7ff;
+  border: 1px solid #c5d0ff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.status-banner p {
+  margin: 0.25rem 0;
+}
+
+.banner-progress {
+  min-width: 220px;
+}
+
+.progress-bar {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.metric-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: white;
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  margin: 0.25rem 0;
+  font-weight: 600;
+}
+
+.metric-delta {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.metric-delta.positive {
+  color: #059669;
+}
+
+.metric-delta.negative {
+  color: #dc2626;
+}
+
+.metrics-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+}
+
+.metrics-table th,
+.metrics-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.metrics-table th {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.delta-positive {
+  color: #059669;
+}
+
+.delta-negative {
+  color: #dc2626;
+}
+
+.analysis-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.analysis-summary > div {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #fbfbfc;
+}
+
+.recommendation-statuses .recommendation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recommendation-row {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.rec-status {
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.rec-status.complete {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.rec-status.open {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.recommendation-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: white;
+}
+
+.recommendation-panel ul {
+  padding-left: 1rem;
+  margin: 0.5rem 0 0;
+}
+
+.recommendation-panel li {
+  margin-bottom: 0.4rem;
+}
+
+.modal-actions.sticky {
+  border-top: 1px solid #e5e7eb;
+  padding: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  background: white;
+}

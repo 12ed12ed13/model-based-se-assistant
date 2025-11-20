@@ -14,6 +14,7 @@ from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 from backend.llms import create_base_llm as _create_base_llm_with_fallback
+from backend.utils.diff import build_version_diff
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +74,14 @@ class ParserAgent:
             "   - 'returns' (not 'returnType' or 'return_type')\n"
             "   - 'from' (not 'source')\n"
             "   - 'to' (not 'target')\n"
+            "   - 'stereotype' (extract from <<...>> notation, e.g., '<<REST API Router>>' becomes 'REST API Router')\n"
             "3. Always include all required fields even if empty\n"
-            "4. Match the exact JSON structure shown in examples\n\n"
+            "4. Match the exact JSON structure shown in examples\n"
+            "5. Extract stereotypes from <<...>> notation in class declarations\n\n"
             "Required JSON schema:\n"
             "{\n"
             '  "classes": [{"name": str, "attributes": [{"name": str, "type": str}], '
-            '"methods": [{"name": str, "params": [str], "returns": str}], "description": str}],\n'
+            '"methods": [{"name": str, "params": [str], "returns": str}], "description": str, "stereotype": str|null}],\n'
             '  "relationships": [{"from": str, "to": str, "type": str, "multiplicity": str}],\n'
             '  "notes": [str]\n'
             "}"
@@ -86,7 +89,7 @@ class ParserAgent:
 
         example_user_1 = (
             "PlantUML:\n"
-            "class User {\n  +id: int\n  +name: string\n}\n"
+            "class User <<Entity>> {\n  +id: int\n  +name: string\n}\n"
         )
 
         example_assistant_1 = json.dumps(
@@ -96,7 +99,8 @@ class ParserAgent:
                         "name": "User",
                         "attributes": [{"name": "id", "type": "int"}, {"name": "name", "type": "string"}],
                         "methods": [],
-                        "description": ""
+                        "description": "",
+                        "stereotype": "Entity"
                     }
                 ],
                 "relationships": [],
@@ -107,7 +111,7 @@ class ParserAgent:
 
         example_user_2 = (
             "PlantUML:\n"
-            "class Calculator {\n"
+            "class Calculator <<Service>> {\n"
             "  + add(x, y): int\n"
             "  + divide(a, b): float\n"
             "}\n"
@@ -125,9 +129,10 @@ class ParserAgent:
                             {"name": "add", "params": ["x", "y"], "returns": "int"},
                             {"name": "divide", "params": ["a", "b"], "returns": "float"}
                         ],
-                        "description": ""
+                        "description": "",
+                        "stereotype": "Service"
                     },
-                    {"name": "Order", "attributes": [{"name": "order_id", "type": "int"}], "methods": [], "description": ""}
+                    {"name": "Order", "attributes": [{"name": "order_id", "type": "int"}], "methods": [], "description": "", "stereotype": None}
                 ],
                 "relationships": [{"from": "Calculator", "to": "Order", "type": "association", "multiplicity": "1"}],
                 "notes": []
@@ -153,13 +158,15 @@ class ParserAgent:
                         "name": "Animal",
                         "attributes": [],
                         "methods": [{"name": "makeSound", "params": [], "returns": "void"}],
-                        "description": ""
+                        "description": "",
+                        "stereotype": None
                     },
                     {
                         "name": "Dog",
                         "attributes": [{"name": "breed", "type": "string"}],
                         "methods": [],
-                        "description": ""
+                        "description": "",
+                        "stereotype": None
                     }
                 ],
                 "relationships": [{"from": "Dog", "to": "Animal", "type": "inheritance", "multiplicity": "1"}],
@@ -268,8 +275,66 @@ class ParserAgent:
 
                 # Log the raw response for debugging
                 self.logger.info(f"[{self.name}] Cleaned text length: {len(text)}, first 200 chars: {text[:200]}")
+                
+                if not text or len(text) < 10:
+                    self.logger.error(f"[{self.name}] Response too short or empty: '{text}'")
+                    raise ValueError(f"Invalid LLM response: too short ({len(text)} chars)")
 
                 parsed = json.loads(text)
+            
+            # Normalize None descriptions to empty strings for Pydantic validation
+            if "classes" in parsed:
+                for cls in parsed["classes"]:
+                    if cls.get("description") is None:
+                        cls["description"] = ""
+                    if cls.get("stereotype") is None:
+                        cls["stereotype"] = None  # This is fine as Optional
+                    
+                    # Fix: Move methods incorrectly placed in attributes
+                    # Some LLMs put methods in attributes list if they look like fields in PlantUML
+                    # We detect this by checking if 'params' or 'returns' keys exist, or if 'type' is missing
+                    new_attributes = []
+                    if "methods" not in cls:
+                        cls["methods"] = []
+                        
+                    for attr in cls.get("attributes", []):
+                        is_method = False
+                        # Check if it has method-like keys
+                        if "params" in attr or "returns" in attr:
+                            is_method = True
+                        # Check if it has no type but has a name that looks like a method (ends with ())
+                        elif "type" not in attr and attr.get("name", "").endswith("()"):
+                            is_method = True
+                        # Check if it has no type but we can infer it's a method from context (e.g. LLM error)
+                        elif "type" not in attr:
+                            # If it has no type, it fails Attribute validation anyway.
+                            # Let's assume it's a void method if it has no type
+                            is_method = True
+                            if "returns" not in attr:
+                                attr["returns"] = "void"
+                            if "params" not in attr:
+                                attr["params"] = []
+                        
+                        if is_method:
+                            # Clean up method name if it has ()
+                            if attr.get("name", "").endswith("()"):
+                                attr["name"] = attr["name"][:-2]
+                            
+                            # Ensure required method fields
+                            if "params" not in attr:
+                                attr["params"] = []
+                            if "returns" not in attr:
+                                attr["returns"] = "void"
+                                
+                            # Remove attribute-specific fields if present
+                            if "type" in attr:
+                                del attr["type"]
+                                
+                            cls["methods"].append(attr)
+                        else:
+                            new_attributes.append(attr)
+                    
+                    cls["attributes"] = new_attributes
 
             # Validate using Pydantic schema
             from backend.schema import ModelIR
@@ -855,10 +920,11 @@ class AnalysisAgent:
                     if dfs(neighbor, path.copy()):
                         return True
                 elif neighbor in rec_stack:
-                    # Found a cycle
-                    cycle_start = path.index(neighbor)
-                    cycle = path[cycle_start:] + [neighbor]
-                    cycles.append(cycle)
+                    # Found a cycle - only process if neighbor is in current path
+                    if neighbor in path:
+                        cycle_start = path.index(neighbor)
+                        cycle = path[cycle_start:] + [neighbor]
+                        cycles.append(cycle)
                     return True
             
             rec_stack.remove(node)
@@ -990,13 +1056,21 @@ class AnalysisAgent:
 
         return f"Design guidance for {base_query}. Focus: {focus_section}. {tag_section} {metric_section}"
 
-    def analyze_model(self, model_ir: Dict[str, Any], description: str = "") -> Dict[str, Any]:
+    def analyze_model(
+        self,
+        model_ir: Dict[str, Any],
+        description: str = "",
+        previous_analysis: Optional[Dict[str, Any]] = None,
+        previous_model_ir: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """
         Analyze a model IR for design issues and improvements using RAG and LLM.
 
         Args:
             model_ir: Intermediate representation of the model.
             description: Natural language description of the model.
+            previous_analysis: Analysis report from previous version (if any) for diffing.
+            previous_model_ir: IR of previous version for structural diffing.
 
         Returns:
             Dictionary containing analysis report with findings and recommendations.
@@ -1057,6 +1131,55 @@ Analyze the model using:
 3. Your expertise in software architecture
 
 Focus on: SOLID violations, missing abstractions, god objects, tight coupling, unclear responsibilities.
+
+**ARCHITECTURAL CONTEXT - READ CAREFULLY:**
+
+The model may contain framework-specific patterns. Consider these when analyzing:
+
+• **FastAPI/REST API Routers** (classes with <<REST API Router>> stereotype):
+  - Having 4-8 endpoint methods is NORMAL and EXPECTED
+  - These are NOT domain classes - they're HTTP controllers
+  - High LCOM is acceptable - methods handle different HTTP endpoints
+  - ❌ DO NOT flag as "God Class" unless methods > 15
+
+• **Repository Pattern** (classes with <<Repository Pattern>> stereotype):
+  - Having 10-20 CRUD methods is NORMAL for repositories
+  - One repository per aggregate root is acceptable
+  - ❌ DO NOT flag as violating SRP unless mixing unrelated concerns (e.g., business logic + data access)
+
+• **State Objects/DTOs** (classes with <<State>> or <<Data Transfer>> stereotype):
+  - Having 10-20 attributes is NORMAL for state machines or DTOs
+  - These carry data through workflows
+  - ❌ DO NOT flag as "God Class" based on attribute count alone
+
+• **Configuration Modules** (classes with <<Configuration Module>> stereotype):
+  - Having multiple configuration attributes is EXPECTED
+  - ❌ DO NOT flag as violating SRP
+
+• **Orchestrators/Coordinators** (classes with <<Orchestrator>> or <<Coordinator>> stereotype):
+  - High fan-out (7-12 dependencies) is NORMAL
+  - They coordinate multiple specialized components
+  - ❌ DO NOT flag high fan-out as violation unless > 15 dependencies
+
+• **Agent Systems** (classes with <<Agent>> stereotype):
+  - Multiple specialized methods for different analyses is EXPECTED
+  - ❌ Only flag if mixing completely unrelated concerns
+
+**BEFORE flagging an issue:**
+1. Check if class has a stereotype indicating a framework pattern
+2. Verify the violation is genuine, not just framework-mandated structure
+3. Only report real design smells that harm maintainability
+
+**RECOMMENDATION REQUIREMENTS:**
+1. For EVERY critical finding, provide at least one specific recommendation addressing it
+2. For God Classes with 15+ methods, recommend decomposition into focused classes
+3. For Storage/Repository classes violating SRP, recommend splitting by domain (e.g., ProjectRepository, VersionRepository, JobRepository)
+4. For classes with multiple responsibility domains, recommend separation by concern
+5. Recommendations should be actionable, specific, and include:
+   - Exact class names to create
+   - Which methods/attributes belong in each new class
+   - The design pattern to apply (Repository, Strategy, Facade, etc.)
+   - Benefits of the refactoring
 
 CRITICAL RULES:
 1. Output ONLY valid JSON - no text before or after
@@ -1229,6 +1352,65 @@ Retrieved Knowledge:
                 "summary": "Logger violates DIP by depending on concrete FileWriter. Recommend introducing ILogWriter interface."
             })
 
+            # Few-shot Example 4: Storage God Class with multiple responsibility domains
+            example_user_4 = """Analyze this model:
+
+Model Structure:
+{
+  "classes": [{
+    "name": "Storage",
+    "stereotype": "Repository Pattern",
+    "methods": [
+      {"name": "ensureProject"}, {"name": "getProject"}, {"name": "listProjects"}, {"name": "deleteProject"},
+      {"name": "createVersion"}, {"name": "getVersion"}, {"name": "listVersions"}, {"name": "updateVersion"},
+      {"name": "createJob"}, {"name": "getJob"}, {"name": "listJobs"}, {"name": "updateJob"},
+      {"name": "saveRecommendations"}, {"name": "listRecommendations"}, {"name": "updateRecommendation"},
+      {"name": "saveDiff"}, {"name": "getDiff"}, 
+      {"name": "_ensureSchema"}, {"name": "_rowToVersion"}, {"name": "_connection"}
+    ],
+    "attributes": [{"name": "dbPath"}, {"name": "conn"}]
+  }]
+}
+
+Pre-analysis Findings:
+- God class detected: Storage with 21 methods spanning 3 responsibility domains (data_access: 7, lifecycle: 2, uncategorized: 12)
+
+Metrics: {"max_methods_per_class": 21}"""
+
+            example_assistant_4 = json.dumps({
+                "findings": [
+                    {
+                        "severity": "critical",
+                        "issue": "Storage is a God Class with 21 methods spanning multiple responsibility domains (projects, versions, jobs, recommendations, diffs). This violates Single Responsibility Principle despite being a repository.",
+                        "affected_entities": ["Storage"],
+                        "violated_principle": "SRP",
+                        "category": "solid"
+                    }
+                ],
+                "recommendations": [
+                    {
+                        "title": "Decompose Storage into domain-specific repositories",
+                        "description": "Split Storage into: ProjectRepository (ensureProject, getProject, listProjects, deleteProject), VersionRepository (createVersion, getVersion, listVersions, updateVersion), JobRepository (createJob, getJob, listJobs, updateJob), RecommendationRepository (saveRecommendations, listRecommendations, updateRecommendation), DiffRepository (saveDiff, getDiff). Create a BaseRepository with shared _connection and _ensureSchema methods.",
+                        "priority": "high",
+                        "affected_entities": ["Storage"],
+                        "design_pattern": "Repository",
+                        "rationale": "Each repository handles one aggregate root, following single responsibility. Makes code more maintainable, testable, and allows parallel development of different domains."
+                    },
+                    {
+                        "title": "Introduce IStorage interface for dependency inversion",
+                        "description": "Create IStorage interface (or separate interfaces per repository). Have routers depend on interfaces instead of concrete implementations. This decouples API layer from storage implementation.",
+                        "priority": "medium",
+                        "affected_entities": ["Storage", "ProjectsRouter", "VersionsRouter"],
+                        "design_pattern": "Dependency Inversion",
+                        "rationale": "Improves testability by allowing mock implementations. Enables switching storage backends (SQLite to PostgreSQL) without changing routers."
+                    }
+                ],
+                "patterns_detected": ["Repository"],
+                "quality_score": 0.4,
+                "quality_metrics": {"max_methods_per_class": 21},
+                "summary": "Critical: Storage God Class should be split into 5 domain-specific repositories for better maintainability."
+            })
+
             # Build user message with all context
             user_message = f"""Analyze this model:
 
@@ -1250,7 +1432,7 @@ Retrieved Design Knowledge:
             if callable(self.llm) and not hasattr(self.llm, 'invoke'):
                 self.logger.debug(f"[{self.name}] Using mock/test LLM")
                 # For testing: concatenate all prompts
-                full_prompt = f"{system_prompt}\n\nExample 1:\n{example_user_1}\n{example_assistant_1}\n\nExample 2:\n{example_user_2}\n{example_assistant_2}\n\nExample 3:\n{example_user_3}\n{example_assistant_3}\n\nActual:\n{user_message}"
+                full_prompt = f"{system_prompt}\n\nExample 1:\n{example_user_1}\n{example_assistant_1}\n\nExample 2:\n{example_user_2}\n{example_assistant_2}\n\nExample 3:\n{example_user_3}\n{example_assistant_3}\n\nExample 4:\n{example_user_4}\n{example_assistant_4}\n\nActual:\n{user_message}"
                 text = self.llm(full_prompt)
             else:
                 # Real LLM: use conversation format
@@ -1262,6 +1444,8 @@ Retrieved Design Knowledge:
                     AIMessage(content=example_assistant_2),
                     HumanMessage(content=example_user_3),
                     AIMessage(content=example_assistant_3),
+                    HumanMessage(content=example_user_4),
+                    AIMessage(content=example_assistant_4),
                     HumanMessage(content=user_message)
                 ]
                 
@@ -1275,7 +1459,7 @@ Retrieved Design Knowledge:
                         text = response
                     else:
                         text = str(response)
-                    self.logger.info(f"[{self.name}] Raw LLM response (first 500 chars): {text[:500] if text else 'None'}")
+                    self.logger.info(f"[{self.name}] Raw LLM response (first 500 chars): {text[:500]}")
                     self.logger.debug(f"[{self.name}] Used invoke() method successfully")
                 except Exception as e:
                     self.logger.warning(f"[{self.name}] LLM invoke failed: {e}, trying alternatives")
@@ -1379,8 +1563,17 @@ Retrieved Design Knowledge:
                 "patterns_detected": llm_result.get("patterns_detected", []),
                 "quality_score": llm_result.get("quality_score", 0.5),
                 "quality_metrics": metrics,
-                "summary": llm_result.get("summary", f"Analyzed {len(model_ir.get('classes', []))} classes, found {len(all_findings)} issues")
+                "summary": llm_result.get("summary", f"Analyzed {len(model_ir.get('classes', []))} classes, found {len(all_findings)} issues"),
+                "trend": {},
             }
+
+            if previous_analysis or previous_model_ir:
+                final_report["trend"] = build_version_diff(
+                    previous_analysis or {},
+                    final_report,
+                    previous_model_ir or {},
+                    model_ir,
+                )
             
             # Validate with Pydantic
             validated = AnalysisReport.model_validate(final_report)
@@ -1400,6 +1593,7 @@ Retrieved Design Knowledge:
                 "quality_score": 0.0,
                 "quality_metrics": {},
                 "summary": "",
+                "trend": {},
                 "error": str(e)
             }
 
@@ -1608,6 +1802,101 @@ Generate well-structured, production-ready code with proper separation of concer
                 "error": str(e)
             }
 
+    def fix_code(
+        self,
+        code_files: Dict[str, Any],
+        test_results: Dict[str, Any],
+        analysis_report: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Fix code based on test execution errors (syntax, imports, etc.).
+        Does NOT attempt to implement logic or fix design issues.
+        
+        Args:
+            code_files: Dictionary of generated files.
+            test_results: Results from test execution containing errors.
+            analysis_report: Optional analysis context.
+            
+        Returns:
+            Dictionary with fixed code files.
+        """
+        self.logger.info(f"[{self.name}] Attempting to fix code errors")
+        
+        # Extract error information
+        error_msg = test_results.get("message", "")
+        stderr = test_results.get("stderr", "")
+        stdout = test_results.get("stdout", "")
+        
+        # If no specific error output, we can't fix much
+        if not stderr and not error_msg and not stdout:
+            self.logger.warning(f"[{self.name}] No error details found to fix")
+            return code_files
+
+        system_prompt = """You are a Python Code Repair Agent.
+Your task is to FIX syntax errors, import errors, and structural issues in the provided code.
+
+CRITICAL RULES:
+1. FIX ONLY the errors reported in the traceback (SyntaxError, ImportError, NameError, AttributeError).
+2. DO NOT implement business logic. Keep methods as pass/return None/empty.
+3. DO NOT change the design or architecture.
+4. PRESERVE existing file structure.
+
+Return JSON with "files" array containing ONLY the files that needed changes.
+Each file object must have "path" and "content"."""
+
+        user_template = """The following code failed to execute/import during testing.
+
+ERROR TRACEBACK:
+{stderr}
+{error_msg}
+
+CODE FILES:
+{code_files}
+
+Fix the errors preventing execution."""
+
+        try:
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("user", user_template)
+            ])
+            
+            parser = JsonOutputParser()
+            
+            # Prepare inputs
+            inputs = {
+                "stderr": stderr[:2000],
+                "error_msg": error_msg,
+                "code_files": json.dumps(code_files.get('files', []), indent=2)[:10000]
+            }
+            
+            # Support both runnable LLMs and simple callables
+            if hasattr(self.llm, 'invoke'):
+                chain = prompt | self.llm | parser
+                result = chain.invoke(inputs)
+            else:
+                # Fallback for mocks - manually format
+                formatted_user_msg = user_template.format(**inputs)
+                concatenated = system_prompt + "\n\n" + formatted_user_msg
+                llm_output = self.llm(concatenated)
+                result = json.loads(llm_output) if isinstance(llm_output, str) else llm_output
+            
+            # Merge fixed files with original files
+            original_files = {f["path"]: f for f in code_files.get("files", [])}
+            fixed_files = result.get("files", [])
+            
+            for fixed_file in fixed_files:
+                path = fixed_file.get("path")
+                if path in original_files:
+                    self.logger.info(f"[{self.name}] Applying fix to {path}")
+                    original_files[path] = fixed_file
+            
+            return {"files": list(original_files.values())}
+            
+        except Exception as e:
+            self.logger.error(f"[{self.name}] Error fixing code: {e}")
+            return code_files
+
     def _build_refactoring_instructions(self, refactorings: Dict[str, Any], model_ir: Dict[str, Any]) -> str:
         """Build specific refactoring instructions based on detected issues."""
         instructions = []
@@ -1761,12 +2050,6 @@ class TestGenerationAgent:
                 ("user", user_message)
             ])
             
-            # Log prompt details for debugging
-            self.logger.info(f"[{self.name}] System prompt length: {len(system_prompt)} chars")
-            self.logger.info(f"[{self.name}] User message length: {len(user_message)} chars")
-            self.logger.debug(f"[{self.name}] System prompt preview (first 300 chars): {system_prompt[:300]}")
-            self.logger.debug(f"[{self.name}] User message preview (first 500 chars): {user_message[:500]}")
-            
             parser = JsonOutputParser()
             
             # Handle both Runnable LLMs and simple callables (for testing)
@@ -1803,8 +2086,9 @@ class TestGenerationAgent:
                 try:
                     result = parser.parse(cleaned_text)
                 except Exception as parse_error:
-                    self.logger.error(f"[{self.name}] JSON parsing failed. Raw output: {raw_text[:1000]}")
-                    raise
+                    self.logger.error(f"[{self.name}] JSON parsing failed. Raw output (first 1000 chars):\n{raw_text[:1000]}")
+                    self.logger.error(f"[{self.name}] Raw output (last 500 chars):\n{raw_text[-500:]}")
+                    raise parse_error
             else:  # Simple callable (for testing with mocks)
                 # Avoid using ChatPromptTemplate.format_messages() for simple
                 # callables to prevent issues with literal braces in JSON.
@@ -1880,8 +2164,8 @@ class TestGenerationAgent:
         
         for finding in findings:
             issue = finding.get("issue", "").lower()
-            category = finding.get("category", "")
-            violated_principle = finding.get("violated_principle", "")
+            category = finding.get("category")
+            violated_principle = finding.get("violated_principle")
             entities = finding.get("affected_entities", [])
             
             # God class splitting -> test cohesion
@@ -2089,7 +2373,8 @@ class CriticAgent:
         self,
         analysis_report: Dict[str, Any],
         code_files: Dict[str, Any],
-        test_results: Dict[str, Any]
+        test_results: Dict[str, Any],
+        project_tags: List[str] = None
     ) -> Dict[str, Any]:
         """
         Provide critique and refactoring suggestions using Gemini.
@@ -2098,22 +2383,39 @@ class CriticAgent:
             analysis_report: Output from the analysis agent.
             code_files: Generated code files.
             test_results: Results from test execution.
+            project_tags: List of technology tags (e.g., "FastAPI", "React").
 
         Returns:
             Dictionary with proposed improvements and refactorings.
         """
         self.logger.info(f"[{self.name}] Critiquing generated artifacts")
 
-        system_prompt = """You are an expert code reviewer and architect.
+        tags_context = ""
+        if project_tags:
+            tags_context = f"\nPROJECT CONTEXT (Technologies: {', '.join(project_tags)}):\n"
+            if "fastapi" in [t.lower() for t in project_tags]:
+                tags_context += "- FastAPI Project: Routers often have many endpoints. Do NOT flag them as God Classes unless they mix unrelated business domains.\n"
+                tags_context += "- Pydantic Models: Used for data validation. Do not flag as data clumps.\n"
+            if "langgraph" in [t.lower() for t in project_tags] or "langchain" in [t.lower() for t in project_tags]:
+                tags_context += "- LangGraph/LangChain: State graphs and chains often have complex dependencies. High fan-out in orchestrators is normal.\n"
+
+        system_prompt = f"""You are an expert code reviewer and architect.
 Review the provided model analysis, generated code, and test results.
+
+{tags_context}
 
 Provide a detailed critique including:
 - Code quality issues (maintainability, readability, efficiency)
-- Design improvements based on SOLID principles
+- Design improvements based on SOLID principles (respecting project context)
 - Refactoring suggestions with specific examples
 - Missing features or error handling
 - Security considerations
 - Performance optimizations
+
+CRITICAL INSTRUCTION:
+- Be concise. Avoid generic advice.
+- If a "God Class" finding from analysis seems justified by the framework (e.g. a Router in FastAPI), explicitly DISMISS it or downgrade it to 'info'.
+- Focus on logic errors, missing tests, and genuine design flaws.
 
 Return a JSON object with: issues, refactoring_suggestions, quality_score (0-100), and reasoning."""
 
@@ -2131,16 +2433,16 @@ Test Results:
 Provide comprehensive critique and suggestions."""
 
         try:
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", system_prompt),
-                ("user", user_message)
-            ])
-
             parser = JsonOutputParser()
             # Support both runnable LLMs and simple callables for testing
-            if hasattr(self.llm, '__or__'):
-                chain_without_parser = prompt | self.llm
-                llm_output = chain_without_parser.invoke({})
+            if hasattr(self.llm, 'invoke'):
+                # Use message objects directly to avoid template formatting issues with JSON braces
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_message)
+                ]
+                
+                llm_output = self.llm.invoke(messages)
                 if hasattr(llm_output, 'content'):
                     raw_text = llm_output.content
                 else:
@@ -2152,16 +2454,33 @@ Provide comprehensive critique and suggestions."""
                     self.logger.error(f"[{self.name}] JSON parsing failed for critique. Raw output: {raw_text[:1000]}")
                     raise
             else:
-                # Avoid prompt.format_messages() for simple callables because
-                # they use Python format-style braces which may conflict with
-                # literal JSON in the message. Instead, concatenate the system
-                # and user messages and pass a single string to the callable.
+                # Fallback for simple callables (mocks)
                 concatenated = system_prompt + "\n\n" + user_message
-                llm_output = self.llm.invoke(concatenated)
+                llm_output = self.llm(concatenated)
                 if isinstance(llm_output, str):
                     result = json.loads(llm_output)
                 else:
                     result = llm_output
+            # Normalize and ensure result contains expected keys
+            if not isinstance(result, dict):
+                self.logger.warning(f"[{self.name}] Critic LLM returned non-dict result: {type(result)}")
+                result = {}
+
+            result.setdefault('issues', [])
+            result.setdefault('refactoring_suggestions', [])
+            # Normalise quality score to a number 0-100
+            try:
+                result['quality_score'] = float(result.get('quality_score', 0) or 0)
+            except Exception:
+                result['quality_score'] = 0.0
+
+            # Ensure a human-readable summary exists
+            if not result.get('summary'):
+                if result['issues'] or result['refactoring_suggestions']:
+                    result['summary'] = f"Critique produced {len(result['issues'])} issue(s) and {len(result['refactoring_suggestions'])} suggestion(s)."
+                else:
+                    result['summary'] = "No issues detected by the critic agent."
+
             self.logger.info(f"[{self.name}] Critique complete - quality score: {result.get('quality_score', 0)}")
             return result
             

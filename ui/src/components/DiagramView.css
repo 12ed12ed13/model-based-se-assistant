@@ -1,0 +1,20 @@
+.diagram-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.diagram-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.diagram-code {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

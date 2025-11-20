@@ -122,7 +122,11 @@ class ProjectMemory:
             "model_ir": None,
             "generated_files": [],
             "analysis_history": [],
-            "metadata": {}
+            "metadata": {},
+            "version_id": None,
+            "parent_version_id": None,
+            "diff_summary": {},
+            "plantuml_path": None,
         }
 
 

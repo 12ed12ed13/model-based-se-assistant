@@ -15,7 +15,7 @@ NOTEBOOKS_DIR = PROJECT_ROOT / "notebooks"
 LOGS_DIR = PROJECT_ROOT / "logs"
 DATA_DIR = PROJECT_ROOT / "data"
 KNOWLEDGE_BASE_DIR = DATA_DIR / "knowledge_base"
-PROJECTS_DIR = PROJECT_ROOT / "projects"
+PROJECTS_DIR = Path(os.getenv("PROJECTS_DIR", str(PROJECT_ROOT / "projects")))
 
 # Ensure directories exist
 LOGS_DIR.mkdir(exist_ok=True)
@@ -58,7 +58,7 @@ if _env_path.exists():
 
 # LLM Configuration
 LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")  # "gemini" or "openai"
-LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-pro")
+LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-2.5-flash-lite")  # Changed to lite version with 1K requests/day quota
 LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.7"))
 LLM_MAX_TOKENS: Optional[int] = int(os.getenv("LLM_MAX_TOKENS", "8192")) or None  # Increased for test generation
 
@@ -70,8 +70,8 @@ USE_GEMINI: bool = os.getenv("USE_GEMINI", "true").lower() == "true"
 OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
 # LLM Retry Configuration
-LLM_MAX_RETRIES: int = int(os.getenv("LLM_MAX_RETRIES", "3"))
-LLM_RETRY_DELAYS: list = [5, 10, 20]  # Exponential backoff in seconds
+LLM_MAX_RETRIES: int = int(os.getenv("LLM_MAX_RETRIES", "2"))  # Reduced from 3 to fail faster
+LLM_RETRY_DELAYS: list = [2, 5]  # Reduced delays for faster failure
 LLM_FALLBACK_PROVIDER: str = os.getenv("LLM_FALLBACK_PROVIDER", "openai")
 LLM_FALLBACK_MODEL: str = os.getenv("LLM_FALLBACK_MODEL", "gpt-4o-mini")
 

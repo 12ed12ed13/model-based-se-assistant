@@ -1,0 +1,210 @@
+@startuml
+package "Backend" {
+  class "api.py" as API {
+    +app: FastAPI
+    +health()
+    +shutdown_event()
+  }
+
+  package "Routers" {
+    class "projects.py" as ProjectsRouter {
+      +router: APIRouter
+      +create_project()
+      +list_projects()
+      +get_project()
+      +delete_project()
+    }
+
+    class "versions.py" as VersionsRouter {
+      +router: APIRouter
+      +list_versions()
+      +get_version()
+      +create_version()
+      +update_version_text()
+      +start_version_workflow()
+      +get_plantuml()
+      -_run_workflow_sync()
+      -_version_record_to_summary()
+      -_version_record_to_detail()
+    }
+
+    class "jobs.py" as JobsRouter {
+      +router: APIRouter
+      +list_jobs()
+      +get_job()
+    }
+
+    class "recommendations.py" as RecommendationsRouter {
+      +router: APIRouter
+      +list_recommendations()
+      +list_version_recommendations()
+      +update_recommendation()
+      +get_diff()
+    }
+  }
+
+  class "storage.py" as Storage {
+    +db_path: Path
+    +ensure_project()
+    +delete_project()
+    +get_latest_version()
+    +list_versions()
+    +get_version()
+    +create_version()
+    +update_version()
+    +list_jobs()
+    +get_job()
+    +create_job()
+    +update_job()
+    +save_diff()
+    +get_diff()
+    +save_recommendations()
+    +list_recommendations()
+    +update_recommendation()
+  }
+
+  class "graph.py" as Graph {
+    +build_workflow_graph()
+    +get_compiled_graph()
+    +node_parse_model()
+    +node_analyze_model()
+    +node_generate_code()
+    +node_generate_tests()
+    +node_save_artifacts()
+    +node_run_tests()
+    +node_critique()
+    +node_final_report()
+  }
+
+  class "agents.py" as Agents {
+    +create_base_llm()
+    class ParserAgent {
+      +parse_model()
+    }
+    class AnalysisAgent {
+      +analyze_model()
+      -_detect_god_classes()
+      -_detect_solid_violations()
+      -_detect_fan_in_fan_out()
+      -_calculate_lcom()
+    }
+    class CodeGenerationAgent {
+      +generate_code()
+    }
+    class TestGenerationAgent {
+      +generate_tests()
+    }
+    class CriticAgent {
+      +critique()
+    }
+  }
+
+  class "tools.py" as Tools {
+    +read_project_file()
+    +write_project_file()
+    +list_project_files()
+    +run_pytest()
+    +run_python_script()
+  }
+
+  class "schema.py" as Schema {
+    class ModelIR
+    class AnalysisReport
+    class AnalysisFinding
+    class AnalysisRecommendation
+  }
+
+  class "config.py" as Config {
+    +PROJECTS_DIR
+    +DB_PATH
+  }
+
+  class "llms.py" as LLMs {
+    +create_base_llm()
+  }
+
+  class "knowledge_base.py" as KB {
+    +retrieve()
+  }
+
+  class "memory.py" as Memory {
+    +ProjectMemory
+    +save()
+    +load()
+  }
+
+  package "Exporters" {
+    class "plantuml.py" as PlantUMLExporter {
+      +write_plantuml()
+    }
+  }
+
+  package "Utils" {
+    class "diff.py" as DiffUtil {
+      +build_version_diff()
+    }
+  }
+}
+
+' API relationships
+API --> ProjectsRouter : includes
+API --> VersionsRouter : includes
+API --> JobsRouter : includes
+API --> RecommendationsRouter : includes
+
+' Router relationships
+ProjectsRouter --> Storage : uses
+VersionsRouter --> Storage : uses
+VersionsRouter --> Graph : invokes
+JobsRouter --> Storage : uses
+RecommendationsRouter --> Storage : uses
+RecommendationsRouter --> DiffUtil : uses
+
+' Storage relationships
+Storage --> Config : uses
+
+' Graph relationships
+Graph --> Agents : orchestrates
+Graph --> Storage : persists state
+Graph --> Schema : uses
+Graph --> PlantUMLExporter : uses
+Graph --> Memory : uses
+
+' Agent relationships
+Agents --> LLMs : uses
+Agents --> Tools : uses
+Agents --> KB : uses
+Agents --> Schema : validates output
+
+ParserAgent --> LLMs : uses
+AnalysisAgent --> LLMs : uses
+CodeGenerationAgent --> LLMs : uses
+TestGenerationAgent --> LLMs : uses
+CriticAgent --> LLMs : uses
+
+note right of API
+  Main FastAPI app now acts as
+  a lightweight coordinator that
+  includes focused routers
+end note
+
+note right of ProjectsRouter
+  Handles project CRUD operations
+  - Create, Read, Update, Delete
+end note
+
+note right of VersionsRouter
+  Handles version management
+  and workflow orchestration
+end note
+
+note right of JobsRouter
+  Monitors workflow job status
+end note
+
+note right of RecommendationsRouter
+  Manages design recommendations
+  and version diffs
+end note
+
+@enduml

@@ -1,0 +1,73 @@
+.project-detail-page {
+  height: calc(100vh - 6rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.project-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--slate-200);
+}
+
+.project-info {
+  flex: 1;
+}
+
+.project-info h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.025em;
+}
+
+.project-description {
+  color: var(--slate-500);
+  font-size: 0.875rem;
+}
+
+.project-content {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 2rem;
+  flex: 1;
+  overflow: hidden;
+}
+
+.version-sidebar {
+  border-right: 1px solid var(--slate-200);
+  padding-right: 1.5rem;
+  overflow-y: auto;
+}
+
+.version-sidebar h3 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--slate-500);
+}
+
+.version-main {
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.job-status-banner {
+  background: var(--warning-bg);
+  border: 1px solid rgba(154, 52, 18, 0.1);
+  color: var(--warning-text);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}

@@ -84,7 +84,15 @@ class LLMFallbackWrapper:
                     logger.error(f"Empty response details - Full result object: {result}")
                     if hasattr(result, '__dict__'):
                         logger.error(f"Result __dict__: {result.__dict__}")
-                    raise ValueError("Empty response from LLM")
+                    
+                    # Treat empty response as an error that should trigger fallback
+                    last_error = ValueError("Empty response from LLM")
+                    logger.warning(f"Empty response on attempt {attempt + 1}/{LLM_MAX_RETRIES}")
+                    
+                    # Don't retry on empty responses, go straight to fallback
+                    if attempt == 0:
+                        break  # Skip retries, use fallback immediately
+                    continue  # Try next retry
                 
                 # Success - reset failure counter
                 if self.primary_failures > 0:
@@ -97,11 +105,24 @@ class LLMFallbackWrapper:
                 last_error = e
                 error_str = str(e).lower()
                 
-                # Check if it's a rate limit or quota error
-                is_rate_limit = any(x in error_str for x in [
-                    '429', 'rate limit', 'quota', 'resource_exhausted',
-                    'too many requests', 'empty response'
+                # Check if it's a quota exhaustion (daily limit) - fail immediately
+                is_quota_exhausted = any(x in error_str for x in [
+                    'quota exceeded', 'current quota', 'daily limit',
+                    'generativelanguage.googleapis.com/generate_content_free_tier_requests'
                 ])
+                
+                if is_quota_exhausted:
+                    logger.error(
+                        f"Daily quota exceeded for {LLM_PROVIDER}/{LLM_MODEL}. "
+                        f"Switching to fallback immediately. Error: {e}"
+                    )
+                    break  # Skip retries, go straight to fallback
+                
+                # Check if it's a temporary rate limit or other retryable error
+                is_rate_limit = any(x in error_str for x in [
+                    '429', 'rate limit', 'resource_exhausted',
+                    'too many requests', 'empty response'
+                ]) and not is_quota_exhausted
                 
                 if is_rate_limit and attempt < LLM_MAX_RETRIES - 1:
                     delay = LLM_RETRY_DELAYS[min(attempt, len(LLM_RETRY_DELAYS) - 1)]

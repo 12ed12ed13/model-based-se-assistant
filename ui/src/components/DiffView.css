@@ -1,0 +1,95 @@
+.diff-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.diff-summary {
+  background: #f5f5f5;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.diff-summary h4 {
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.diff-section {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.diff-section h4 {
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.diff-group {
+  margin-bottom: 1rem;
+}
+
+.diff-group h5 {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  color: #666;
+}
+
+.diff-group ul {
+  list-style: none;
+  padding: 0;
+}
+
+.diff-group li {
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+}
+
+.diff-added {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.diff-removed {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.diff-changed {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.diff-details {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.metrics-table th,
+.metrics-table td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.metrics-table th {
+  font-weight: 600;
+  color: #333;
+  background-color: #f5f5f5;
+}
+
+.metrics-table .positive {
+  color: #2e7d32;
+}
+
+.metrics-table .negative {
+  color: #c62828;
+}
