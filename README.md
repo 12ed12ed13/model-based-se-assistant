@@ -222,7 +222,7 @@ A production-ready AI-powered system that transforms UML/PlantUML diagrams into 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 🎯 Overview
-
+[[MBSE Workflow]](images/workflow.png)
 This system implements a complete **Model-Based Software Engineering (MBSE)** workflow that:
 
 1. **Parses** UML/PlantUML models into intermediate representation
